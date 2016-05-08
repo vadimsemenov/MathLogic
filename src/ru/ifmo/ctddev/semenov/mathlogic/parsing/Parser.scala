@@ -1,6 +1,6 @@
 package ru.ifmo.ctddev.semenov.mathlogic.parsing
 
-import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Expression, !, Term}
+import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Expression, !, Variable}
 
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
@@ -70,7 +70,7 @@ class PropositionalParser extends Parser {
 
   private def consumeVar(name: String): Expression = {
     consume(VAR(name))
-    Term(name)
+    Variable(name)
   }
 
   private def consume(token: Lexeme): Unit = {

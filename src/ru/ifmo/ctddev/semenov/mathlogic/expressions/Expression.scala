@@ -8,32 +8,40 @@ package ru.ifmo.ctddev.semenov.mathlogic.expressions
   */
 sealed trait Expression {
   def wrap(expression: Expression) = expression match {
-    case !(_) => expression.toString
-    case Term(_) => expression.toString
-    case _ => '(' + expression.toString + ')'
+    case !(_) | Variable(_) => expression.toString
+    case _                  => '(' + expression.toString + ')'
   }
   def ->(other: Expression) = new ->(this, other)
   def &(other: Expression) = new &(this, other)
   def |(other: Expression) = new |(this, other)
 }
 
+sealed trait Binary extends Expression {
+  def lhs: Expression
+  def rhs: Expression
+}
+
+sealed trait Unary extends Expression {
+  def arg: Expression
+}
+
 // antecedent->consequent
-case class ->(lhs: Expression, rhs: Expression) extends Expression {
+case class ->(lhs: Expression, rhs: Expression) extends Binary {
   override def toString = wrap(lhs) + "->" + wrap(rhs)
 }
 
-case class &(lhs: Expression, rhs: Expression) extends Expression {
+case class &(lhs: Expression, rhs: Expression) extends Binary {
   override def toString = wrap(lhs) + "&" + wrap(rhs)
 }
 
-case class |(lhs: Expression, rhs: Expression) extends Expression {
+case class |(lhs: Expression, rhs: Expression) extends Binary {
   override def toString = wrap(lhs) + "|" + wrap(rhs)
 }
 
-case class !(expression: Expression) extends Expression {
-  override def toString = "!" + wrap(expression)
+case class !(arg: Expression) extends Unary {
+  override def toString = "!" + wrap(arg)
 }
 
-case class Term(name: String) extends Expression {
+case class Variable(name: String) extends Expression {
   override def toString = name
 }
