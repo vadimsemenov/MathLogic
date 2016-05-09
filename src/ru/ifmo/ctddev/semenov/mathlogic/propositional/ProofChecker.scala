@@ -8,12 +8,12 @@ import scala.collection.mutable.ArrayBuffer
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
-object ProveChecker {
+object ProofChecker {
   // TODO: create logger
   private def log(msg: String) = Console.err.println(msg)
 
-  def getCertificate(assumptions: mutable.IndexedSeq[Expression], prove: Iterable[Expression]): ArrayBuffer[(Int, Int)] = {
-    val certificate = new ArrayBuffer[(Int, Int)](prove.size)
+  def getCertificate(assumptions: mutable.IndexedSeq[Expression], proof: Iterable[Expression]): ArrayBuffer[(Int, Int)] = {
+    val certificate = new ArrayBuffer[(Int, Int)](proof.size)
     val rights = new mutable.HashMap[Expression, mutable.MutableList[Int]]()
     val proved = new mutable.ArrayBuffer[Expression]()
     val provedIdx = new mutable.HashMap[Expression, Int]()
@@ -23,12 +23,12 @@ object ProveChecker {
     }
 
     var index = 0
-    for (expression <- prove) {
+    for (expression <- proof) {
       val axiomIdx = Axioms.getIdx(expression)
       if (axiomIdx < 0) {
         assumptionIdx get expression match {
           case Some(idx) =>
-            log(s"Assumption #$idx")
+            log(s"Assumption #${idx + 1}")
             certificate += ((-1, idx))
           case None      => rights get expression match {
             case Some(list) =>
@@ -44,11 +44,11 @@ object ProveChecker {
                 }
               }
               if (!isOk) {
-                log(s"The prove is incorrect starting from #${index + 1}")
+                log(s"The proof is incorrect starting from #${index + 1}")
                 return certificate
               }
             case None       =>
-              log(s"The prove is incorrect starting from #${index + 1}")
+              log(s"The proof is incorrect starting from #${index + 1}")
               return certificate
           }
         }
@@ -76,18 +76,18 @@ object ProveChecker {
     certificate
   }
 
-  def check(assumption: mutable.IndexedSeq[Expression], prove: Iterable[Expression]): Verdict = {
-    val length = getCertificate(assumption, prove).size
-    if (length == prove.size) Correct
+  def check(assumption: mutable.IndexedSeq[Expression], proof: Iterable[Expression]): Verdict = {
+    val length = getCertificate(assumption, proof).size
+    if (length == proof.size) Correct
     else Incorrect(length)
   }
 
-  def check(prove: Iterable[Expression]) = check(mutable.IndexedSeq.empty, prove)
+  def check(proof: Iterable[Expression]): Verdict = check(mutable.IndexedSeq.empty, proof)
 }
 
 trait Verdict {
   def isCorrect: Boolean = false
-  def getFirstIncorrect: Int = throw new IllegalStateException("The prove is correct")
+  def getFirstIncorrect: Int = throw new IllegalStateException("The proof is correct")
 }
 
 case object Correct extends Verdict {

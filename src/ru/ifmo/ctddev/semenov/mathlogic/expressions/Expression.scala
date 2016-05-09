@@ -11,6 +11,7 @@ sealed trait Expression {
     case !(_) | Variable(_) => expression.toString
     case _                  => '(' + expression.toString + ')'
   }
+  // TODO: make it right-associative
   def ->(other: Expression) = new ->(this, other)
   def &(other: Expression) = new &(this, other)
   def |(other: Expression) = new |(this, other)
