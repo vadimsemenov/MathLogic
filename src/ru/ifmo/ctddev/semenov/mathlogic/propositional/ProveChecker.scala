@@ -3,49 +3,58 @@ package ru.ifmo.ctddev.semenov.mathlogic.propositional
 import ru.ifmo.ctddev.semenov.mathlogic.expressions.{->, Expression}
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
 object ProveChecker {
-  final val CORRECT = -1
-
   // TODO: create logger
   private def log(msg: String) = Console.err.println(msg)
 
-  def check(prove: Iterator[Expression]): Int = {
+  def getCertificate(assumptions: mutable.IndexedSeq[Expression], prove: Iterable[Expression]): ArrayBuffer[(Int, Int)] = {
+    val certificate = new ArrayBuffer[(Int, Int)](prove.size)
     val rights = new mutable.HashMap[Expression, mutable.MutableList[Int]]()
     val proved = new mutable.ArrayBuffer[Expression]()
     val provedIdx = new mutable.HashMap[Expression, Int]()
+    val assumptionIdx = new mutable.HashMap[Expression, Int]()
+    for (index <- assumptions.indices) {
+      assumptionIdx.put(assumptions(index), index)
+    }
 
     var index = 0
     for (expression <- prove) {
       val axiomIdx = Axioms.getIdx(expression)
       if (axiomIdx < 0) {
-        rights.get(expression) match {
-          case Some(list) =>
-            var isOk = false
-            for (snd <- list) {
-              if (!isOk) {
+        assumptionIdx get expression match {
+          case Some(idx) =>
+            log(s"Assumption #$idx")
+            certificate += ((-1, idx))
+          case None      => rights get expression match {
+            case Some(list) =>
+              var isOk = false
+              for (snd <- list; if !isOk) {
                 val exp = proved(snd).asInstanceOf[->]
-                provedIdx.get(exp.lhs) match {
+                provedIdx get exp.lhs match {
                   case Some(fst) =>
                     isOk = true
                     log(s"M.P. ${fst + 1},${snd + 1}")
+                    certificate += ((fst, snd))
                   case None      =>
                 }
               }
-            }
-            if (!isOk) {
-              log(s"Доказательство некорректно начиная с номера ${index + 1}")
-              return index
-            }
-          case None       =>
-            log(s"Доказательство некорректно начиная с номера ${index + 1}")
-            return index
+              if (!isOk) {
+                log(s"The prove is incorrect starting from #${index + 1}")
+                return certificate
+              }
+            case None       =>
+              log(s"The prove is incorrect starting from #${index + 1}")
+              return certificate
+          }
         }
       } else {
-        log(s"Сх. акс. ${axiomIdx + 1}")
+        log(s"Axiom schema #${axiomIdx + 1}")
+        certificate += ((axiomIdx, -1))
       }
       proved += expression
       provedIdx.put(expression, index)
@@ -64,6 +73,27 @@ object ProveChecker {
       }
       index += 1
     }
-    CORRECT
+    certificate
   }
+
+  def check(assumption: mutable.IndexedSeq[Expression], prove: Iterable[Expression]): Verdict = {
+    val length = getCertificate(assumption, prove).size
+    if (length == prove.size) Correct
+    else Incorrect(length)
+  }
+
+  def check(prove: Iterable[Expression]) = check(mutable.IndexedSeq.empty, prove)
+}
+
+trait Verdict {
+  def isCorrect: Boolean = false
+  def getFirstIncorrect: Int = throw new IllegalStateException("The prove is correct")
+}
+
+case object Correct extends Verdict {
+  override def isCorrect = true
+}
+
+case class Incorrect(index: Int) extends Verdict {
+  override def getFirstIncorrect = index
 }

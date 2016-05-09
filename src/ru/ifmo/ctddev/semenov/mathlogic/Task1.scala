@@ -1,7 +1,7 @@
 package ru.ifmo.ctddev.semenov.mathlogic
 
 import ru.ifmo.ctddev.semenov.mathlogic.parsing.PropositionalParser
-import ru.ifmo.ctddev.semenov.mathlogic.propositional.ProveChecker
+import ru.ifmo.ctddev.semenov.mathlogic.propositional.{Correct, Incorrect, ProveChecker}
 
 import scala.io.Source
 
@@ -11,11 +11,11 @@ import scala.io.Source
 object Task1 {
   def main(args: Array[String]) {
     val parser = new PropositionalParser()
-    val expressions = Source.fromInputStream(System.in).getLines().map(parser.parse)
+    val expressions = Source.fromInputStream(System.in).getLines().toIterable.map(parser.parse)
     val verdict = ProveChecker.check(expressions)
-    println(
-      if (verdict == ProveChecker.CORRECT) "Доказательство корректно."
-      else s"Доказательство некоректно начиная с номера ${verdict + 1}"
-    )
+    println(verdict match {
+      case Correct          => "Доказательство корректно."
+      case Incorrect(index) => s"Доказательство некоректно начиная с номера ${index + 1}"
+    })
   }
 }
