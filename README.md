@@ -1,8 +1,8 @@
 # Math Logic course by Dmitry Shtukenberg (aka @shd)
 
-## Task1 -- The proof checker for predicate logic
+## Task1 &mdash; The proof checker for predicate logic
 
-## Task2 -- Deduction method for predicate logic
+## Task2 &mdash; Deduction method for predicate logic
 Transforms Γ, α ⊢ β proof into proof for Γ ⊢ α → β
 
 ## To be continued
