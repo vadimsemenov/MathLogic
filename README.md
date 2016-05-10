@@ -10,4 +10,5 @@ Transforms Γ, α ⊢ β proof into proof for Γ ⊢ α → β
 ## TODO:
 * `IOUtils`
 * make `->` right-associated function (is it possible at all?)
+* typedefs (?) for Proof, Assumption, Context (Assumptions + Proved), ...
 * other tasks... :)
