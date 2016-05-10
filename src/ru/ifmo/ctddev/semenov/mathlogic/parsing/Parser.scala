@@ -1,6 +1,6 @@
 package ru.ifmo.ctddev.semenov.mathlogic.parsing
 
-import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Expression, !, Variable}
+import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Expression, Variable}
 
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
@@ -58,7 +58,7 @@ class PropositionalParser extends Parser {
 
   private def consumeNegation(): Expression = {
     consume(BANG)
-    new !(parseConjunct())
+    !parseConjunct()
   }
 
   private def consumeParenthesis(): Expression = {

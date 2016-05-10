@@ -15,6 +15,7 @@ sealed trait Expression {
   def ->(other: Expression) = new ->(this, other)
   def &(other: Expression) = new &(this, other)
   def |(other: Expression) = new |(this, other)
+  def unary_!() = new !(this)
 }
 
 sealed trait Binary extends Expression {
