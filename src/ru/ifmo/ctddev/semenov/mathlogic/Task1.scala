@@ -1,21 +1,19 @@
 package ru.ifmo.ctddev.semenov.mathlogic
 
-import ru.ifmo.ctddev.semenov.mathlogic.parsing.PropositionalParser
-import ru.ifmo.ctddev.semenov.mathlogic.propositional.{Correct, Incorrect, ProofChecker}
+import java.nio.file.{Files, Paths}
 
-import scala.io.Source
+import ru.ifmo.ctddev.semenov.mathlogic.propositional.ProofChecker
+import ru.ifmo.ctddev.semenov.mathlogic.utils.IOUtils
 
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
 object Task1 {
   def main(args: Array[String]) {
-    val parser = new PropositionalParser()
-    val expressions = Source.fromInputStream(System.in).getLines().toIterable.map(parser.parse)
-    val verdict = ProofChecker.check(expressions)
-    println(verdict match {
-      case Correct          => "Доказательство корректно."
-      case Incorrect(index) => s"Доказательство некоректно начиная с номера ${index + 1}"
-    })
+    val (in, out) = if (args.length < 2) (System.in, System.out)
+                    else (Files.newInputStream(Paths.get(args(0))), Files.newOutputStream(Paths.get(args(1))))
+    val proof = IOUtils.readExpressions(in)
+    val annotatedProof = ProofChecker.annotate(proof.toIndexedSeq)
+    IOUtils.write(out, annotatedProof)
   }
 }

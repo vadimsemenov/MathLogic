@@ -12,80 +12,85 @@ object ProofChecker {
   // TODO: create logger
   private def log(msg: String) = Console.err.println(msg)
 
-  def getCertificate(assumptions: mutable.IndexedSeq[Expression], proof: Iterable[Expression]): ArrayBuffer[(Int, Int)] = {
-    val certificate = new ArrayBuffer[(Int, Int)](proof.size)
+  def annotate(assumptions: mutable.IndexedSeq[Expression], proof: IndexedSeq[Expression]): ArrayBuffer[AnnotatedExpression] = {
+    val annotated = new ArrayBuffer[AnnotatedExpression](proof.size)
     val rights = new mutable.HashMap[Expression, mutable.MutableList[Int]]()
     val proved = new mutable.ArrayBuffer[Expression]()
     val provedIdx = new mutable.HashMap[Expression, Int]()
-    val assumptionIdx = new mutable.HashMap[Expression, Int]()
+    val idxByAssumption = new mutable.HashMap[Expression, Int]()
     for (index <- assumptions.indices) {
-      assumptionIdx.put(assumptions(index), index)
+      idxByAssumption.put(assumptions(index), index)
     }
 
-    var index = 0
-    for (expression <- proof) {
-      val axiomIdx = Axioms.getIdx(expression)
-      if (axiomIdx < 0) {
-        assumptionIdx get expression match {
+    def createAnnotation(expression: Expression): Annotation = {
+      Axioms.getIdx(expression) match {
+        case None           => idxByAssumption get expression match {
           case Some(idx) =>
-            log(s"Assumption #${idx + 1}")
-            certificate += ((-1, idx))
+            //            log(s"Assumption #${idx + 1}")
+            Assumption(idx + 1)
           case None      => rights get expression match {
             case Some(list) =>
-              var isOk = false
-              for (snd <- list; if !isOk) {
+              for (snd <- list) {
                 val exp = proved(snd).asInstanceOf[->]
                 provedIdx get exp.lhs match {
                   case Some(fst) =>
-                    isOk = true
-                    log(s"M.P. ${fst + 1},${snd + 1}")
-                    certificate += ((fst, snd))
+                    //                    log(s"M.P. ${fst + 1},${snd + 1}")
+                    return ModusPonens(fst + 1, snd + 1)
                   case None      =>
                 }
               }
-              if (!isOk) {
-                log(s"The proof is incorrect starting from #${index + 1}")
-                return certificate
-              }
+              log(s"The proof is incorrect starting from '$expression'")
+              NotProved
             case None       =>
-              log(s"The proof is incorrect starting from #${index + 1}")
-              return certificate
+              log(s"The proof is incorrect starting from '$expression'")
+              NotProved
           }
         }
-      } else {
-        log(s"Axiom schema #${axiomIdx + 1}")
-        certificate += ((axiomIdx, -1))
+        case Some(axiomIdx) =>
+          //          log(s"Axiom schema #${axiomIdx + 1}")
+          Axiom(axiomIdx + 1)
       }
-      proved += expression
-      provedIdx.put(expression, index)
-      expression match {
-        case casted: -> =>
-          val optionList = rights.get(casted.rhs)
-          var list: mutable.MutableList[Int] = null
-          if (optionList.isEmpty) {
-            list = new mutable.MutableList[Int]
-            rights.put(casted.rhs, list)
-          } else {
-            list = optionList.get
+    }
+
+    var index = 0
+    var failed = false
+    for (expression <- proof) {
+      val annotation = if (failed) NotProved else createAnnotation(expression)
+
+      if (!failed) {
+        if (annotation == NotProved) {
+          failed = true
+        } else {
+          proved += expression
+          provedIdx.put(expression, index)
+          expression match {
+            case casted: -> =>
+              val list: mutable.MutableList[Int] = rights.getOrElse(casted.rhs, new mutable.MutableList[Int])
+              if (list.isEmpty) rights.put(casted.rhs, list)
+              list += index
+            case _          =>
           }
-          list += index
-        case _          =>
+        }
       }
       index += 1
+      annotated += AnnotatedExpression(index, expression, annotation)
     }
-    certificate
+    annotated
   }
 
-  def check(assumption: mutable.IndexedSeq[Expression], proof: Iterable[Expression]): Verdict = {
-    val length = getCertificate(assumption, proof).size
-    if (length == proof.size) Correct
-    else Incorrect(length)
+  def annotate(proof: IndexedSeq[Expression]): ArrayBuffer[AnnotatedExpression] =
+    annotate(mutable.IndexedSeq.empty[Expression], proof)
+
+  def check(assumption: mutable.IndexedSeq[Expression], proof: IndexedSeq[Expression]): Verdict = {
+    val annotatedProof = annotate(assumption, proof)
+    if (annotatedProof.last.annotation != NotProved) Correct
+    else Incorrect(1 + annotatedProof.indexWhere(_.annotation == NotProved))
   }
 
-  def check(proof: Iterable[Expression]): Verdict = check(mutable.IndexedSeq.empty, proof)
+  def check(proof: IndexedSeq[Expression]): Verdict = check(mutable.IndexedSeq.empty, proof)
 }
 
-trait Verdict {
+sealed trait Verdict {
   def isCorrect: Boolean = false
   def getFirstIncorrect: Int = throw new IllegalStateException("The proof is correct")
 }

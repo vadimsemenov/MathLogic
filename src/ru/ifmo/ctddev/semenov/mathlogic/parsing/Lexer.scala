@@ -25,17 +25,23 @@ class PropositionalLexer(string: String) extends Lexer {
   // initialize currentToken
   move()
 
-  override def hasNext = {
-    skipWhitespaces()
-    ptr < string.length
-  }
-
   override def current() = currentToken
 
   override def next() = {
     if (!hasNext) throw new IllegalStateException("!hasNext")
     move()
     currentToken
+  }
+
+  override def hasNext = {
+    skipWhitespaces()
+    ptr < string.length
+  }
+
+  private def skipWhitespaces() = {
+    while (ptr < string.length && Utils.isWhitespace(string.charAt(ptr))) {
+      ptr += 1
+    }
   }
 
   private def move(): Unit = {
@@ -65,12 +71,6 @@ class PropositionalLexer(string: String) extends Lexer {
       ptr = end
       return
     }
-    throw new IllegalStateException("unknown token at " + ptr + " position")
-  }
-
-  private def skipWhitespaces() = {
-    while (ptr < string.length && Utils.isWhitespace(string.charAt(ptr))) {
-      ptr += 1
-    }
+    throw new IllegalStateException(s"unknown token at $ptr position")
   }
 }

@@ -20,6 +20,7 @@ sealed trait Expression {
 
 sealed trait Binary extends Expression {
   def lhs: Expression
+
   def rhs: Expression
 }
 

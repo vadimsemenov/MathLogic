@@ -24,15 +24,15 @@ object Axioms {
 
   val axioms = axiomsString map parser.parse
 
-  def getIdx(expression: Expression): Int = {
+  def getIdx(expression: Expression): Option[Int] = {
     val matcher = new ReverseMatcher(expression)
     var axiomNumber = 0
     for (axiom <- axioms) {
       if (matcher(axiom)) {
-        return axiomNumber
+        return Some(axiomNumber)
       }
       axiomNumber += 1
     }
-    -1
+    None
   }
 }
