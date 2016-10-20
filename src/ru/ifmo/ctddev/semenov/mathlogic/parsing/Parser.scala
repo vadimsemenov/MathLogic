@@ -35,7 +35,7 @@ class PropositionalParser extends Parser {
     var disjunction = parseConjunction()
     while (lexer.current() == STICK) {
       consume(STICK)
-      disjunction = disjunction | parseConjunction()
+      disjunction = disjunction V parseConjunction()
     }
     disjunction
   }

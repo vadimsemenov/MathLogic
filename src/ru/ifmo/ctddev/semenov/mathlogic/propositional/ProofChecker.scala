@@ -12,7 +12,8 @@ object ProofChecker {
   // TODO: create logger
   private def log(msg: String) = Console.err.println(msg)
 
-  def annotate(assumptions: mutable.IndexedSeq[Expression], proof: IndexedSeq[Expression]): ArrayBuffer[AnnotatedExpression] = {
+  def annotate(derivation: Derivation): ArrayBuffer[AnnotatedExpression] = {
+    val (assumptions, proof) = derivation
     val annotated = new ArrayBuffer[AnnotatedExpression](proof.size)
     val rights = new mutable.HashMap[Expression, mutable.MutableList[Int]]()
     val proved = new mutable.ArrayBuffer[Expression]()
@@ -26,7 +27,6 @@ object ProofChecker {
       Axioms.getIdx(expression) match {
         case None           => idxByAssumption get expression match {
           case Some(idx) =>
-            //            log(s"Assumption #${idx + 1}")
             Assumption(idx + 1)
           case None      => rights get expression match {
             case Some(list) =>
@@ -39,10 +39,8 @@ object ProofChecker {
                   case None      =>
                 }
               }
-              log(s"The proof is incorrect starting from '$expression'")
               NotProved
             case None       =>
-              log(s"The proof is incorrect starting from '$expression'")
               NotProved
           }
         }
@@ -59,6 +57,7 @@ object ProofChecker {
 
       if (!failed) {
         if (annotation == NotProved) {
+          log(s"The proof is incorrect starting from line #${index + 1}")
           failed = true
         } else {
           proved += expression
@@ -78,16 +77,16 @@ object ProofChecker {
     annotated
   }
 
-  def annotate(proof: IndexedSeq[Expression]): ArrayBuffer[AnnotatedExpression] =
-    annotate(mutable.IndexedSeq.empty[Expression], proof)
+  def annotate(proof: Proof): AnnotatedProof =
+    annotate((mutable.ArrayBuffer.empty[Expression], proof))
 
-  def check(assumption: mutable.IndexedSeq[Expression], proof: IndexedSeq[Expression]): Verdict = {
-    val annotatedProof = annotate(assumption, proof)
+  def check(derivation: Derivation): Verdict = {
+    val annotatedProof = annotate(derivation)
     if (annotatedProof.last.annotation != NotProved) Correct
     else Incorrect(1 + annotatedProof.indexWhere(_.annotation == NotProved))
   }
 
-  def check(proof: IndexedSeq[Expression]): Verdict = check(mutable.IndexedSeq.empty, proof)
+  def check(proof: Proof): Verdict = check(Derivation(mutable.ArrayBuffer.empty, proof))
 }
 
 sealed trait Verdict {

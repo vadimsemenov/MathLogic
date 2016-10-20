@@ -8,18 +8,19 @@ import scala.collection.mutable
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
 object Deduction {
-  def apply(assumption: mutable.IndexedSeq[Expression], prove: mutable.IndexedSeq[Expression]): Option[mutable.ArrayBuffer[Expression]] = {
-    val annotatedProof = ProofChecker.annotate(assumption, prove)
+  def apply(derivation: Derivation): Option[Derivation] = {
+    val (assumption, proof) = derivation
+    val annotatedProof = ProofChecker.annotate(assumption, proof)
     val alpha = assumption.last
-    val proveSize = prove.size
+    val proveSize = proof.size
     val newProve = new mutable.ArrayBuffer[Expression](proveSize * 3 + 4) // upper bound
     var wasAlphaAlpha = false
-    for (idx <- annotatedProof.indices) annotatedProof(idx).annotation match {
-      case Axiom(_) | Assumption(_)  =>
-        if (prove(idx) != alpha) {
-          newProve += prove(idx)
-          newProve += prove(idx) -> (alpha -> prove(idx))
-          newProve += alpha -> prove(idx)
+    for (AnnotatedExpression(_, exp, annotation) <- annotatedProof) annotation match {
+      case Axiom(_) | Assumption(_) =>
+        if (exp != alpha) {
+          newProve += exp
+          newProve += exp -> (alpha -> exp)
+          newProve += alpha -> exp
         } else if (!wasAlphaAlpha) {
           wasAlphaAlpha = true
           newProve += alpha -> (alpha -> alpha)
@@ -28,16 +29,18 @@ object Deduction {
           newProve += alpha -> ((alpha -> alpha) -> alpha)
           newProve += alpha -> alpha
         }
-      case ModusPonens(j, _) =>
-        val di = prove(idx)
-        val dj = prove(j - 1)
+      case ModusPonens(j, _)        =>
+        val di = exp
+        val dj = proof(j - 1)
         newProve += (alpha -> dj) -> ((alpha -> (dj -> di)) -> (alpha -> di))
         newProve += ((alpha -> (dj -> di)) -> (alpha -> di))
         newProve += alpha -> di
-      case NotProved                 =>
+      case NotProved                =>
         return None
     }
-    assert(ProofChecker.check(assumption.init, newProve).isCorrect)
-    Some(newProve)
+    if (newProve.last != (alpha -> proof.last)) newProve += alpha -> proof.last // dirty hack to prove α → α
+    val newDerivation: Derivation = Derivation(assumption.init, newProve)
+    assert(ProofChecker.check(newDerivation).isCorrect)
+    Some(newDerivation)
   }
 }

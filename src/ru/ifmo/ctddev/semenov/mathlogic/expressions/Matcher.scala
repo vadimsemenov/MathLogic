@@ -25,21 +25,24 @@ class ReverseMatcher(expression: Expression) extends Matcher(expression) {
 
 private object InternalMatcher {
   def internalMatch(fst: Expression, snd: Expression, onVariable: (String, Expression) => Boolean): Boolean = fst match {
-    case ->(lhs, rhs)   => if (!snd.isInstanceOf[->]) false
-    else {
-      val casted = snd.asInstanceOf[->]
-      internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
-    }
-    case &(lhs, rhs)    => if (!snd.isInstanceOf[&]) false
-    else {
-      val casted = snd.asInstanceOf[&]
-      internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
-    }
-    case |(lhs, rhs)    => if (!snd.isInstanceOf[|]) false
-    else {
-      val casted = snd.asInstanceOf[|]
-      internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
-    }
+    case lhs -> rhs     =>
+      if (!snd.isInstanceOf[->]) false
+      else {
+        val casted = snd.asInstanceOf[->]
+        internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
+      }
+    case lhs & rhs      =>
+      if (!snd.isInstanceOf[&]) false
+      else {
+        val casted = snd.asInstanceOf[&]
+        internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
+      }
+    case lhs V rhs      =>
+      if (!snd.isInstanceOf[V]) false
+      else {
+        val casted = snd.asInstanceOf[V]
+        internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
+      }
     case !(arg)         => if (!snd.isInstanceOf[!]) false else internalMatch(arg, snd.asInstanceOf[!].arg, onVariable)
     case Variable(name) => onVariable(name, snd)
   }
