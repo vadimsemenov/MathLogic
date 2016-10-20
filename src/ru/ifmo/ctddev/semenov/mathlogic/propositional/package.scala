@@ -208,13 +208,13 @@ package object propositional {
     * α → β, ¬β ⊢ ¬α
     */
   def modusTollens(α: Expression, β: Expression): Proof = Proof(
-    (!β) -> (α -> (!β)),                       // Axiom schema #1
-    !β,                                               // Hypothesis #2
-    α -> (!β),                                    // M.P. -1, -2
+    (!β) -> (α -> (!β)),               // Axiom schema #1
+    !β,                                // Hypothesis #2
+    α -> (!β),                         // M.P. -1, -2
     (α -> β) -> ((α -> (!β)) -> (!α)), // Axiom schema #9
-    α -> β,                                       // Hypothesis #1
-    (α -> (!β)) -> (!α),                      // M.P. -1, -2
-    !α                                               // M.P. -4, -1
+    α -> β,                            // Hypothesis #1
+    (α -> (!β)) -> (!α),               // M.P. -1, -2
+    !α                                 // M.P. -4, -1
   )
 
   /**
@@ -227,12 +227,12 @@ package object propositional {
       List(
         ((!(α V (!α))) -> (!α)) ->
           (((!(α V (!α))) -> (!(!α))) -> (!(!(α V (!α))))), // Axiom schema #9
-        (!(α V (!α))) -> (!α),                                      // From part(α, α | !α)
+        (!(α V (!α))) -> (!α),                              // From part(α, α | !α)
         ((!(α V (!α))) -> (!(!α))) -> (!(!(α V (!α)))),     // M.P. part1, -1
-        (!(α V (!α))) -> (!(!α)),                                   // From part(!α, α | !α
-        !(!(α V (!α))),                                                 // M.P. part2, -1
-        (!(!(α V (!α)))) -> (α V (!α)),                         // Axiom schema #10
-        α V (!α)                                                        // M.P. -2, -1
+        (!(α V (!α))) -> (!(!α)),                           // From part(!α, α | !α
+        !(!(α V (!α))),                                     // M.P. part2, -1
+        (!(!(α V (!α)))) -> (α V (!α)),                     // Axiom schema #10
+        α V (!α)                                            // M.P. -2, -1
       )
   }
 
