@@ -16,77 +16,84 @@ object Ordinal {
   def sum(lhs: Ordinal, rhs: Ordinal): Ordinal = (lhs, rhs) match {
     case (Atom(lval), Atom(rval))                         => Atom(lval + rval)
     case (Atom(_), _)                                     => rhs
-    case (_, Atom(_))                                     => lhs
-    case (CNF(lpow, lcoef, lrem), CNF(rpow, rcoef, rrem)) =>
-      if (lpow < rpow) rhs
-      else if (lpow == rpow) CNF(lpow, lcoef + rcoef, rrem)
-      else CNF(lpow, lcoef, sum(lrem, rhs))
+    case (CNF(lpow, lcoef, lrem), Atom(_))                => CNF(lpow, lcoef, sum(lrem, rhs))
+    case (CNF(lpow, lcoef, lrem), CNF(rpow, rcoef, rrem)) => lpow compare rpow match {
+      case c if c < 0 => rhs
+      case c if c > 0 => CNF(lpow, lcoef, sum(lrem, rhs))
+      case _          => CNF(lpow, lcoef + rcoef, rrem)
+    }
   }
 
   // TODO: speedup
   def mul(lhs: Ordinal, rhs: Ordinal): Ordinal = (lhs, rhs) match {
-    case (Atom(lval), Atom(rval))                         => Atom(lval * rval)
-    case (Atom(lval), _)                                  => if (lval == 0) Atom(0) else rhs
-    case (CNF(lpow, lcoef, lrem), Atom(rval))             => CNF(lpow, lcoef * rval, lrem)
-    case (CNF(lpow, lcoef, lrem), CNF(rpow, rcoef, rrem)) => CNF(sum(lpow, rpow), rcoef, mul(lhs, rrem))
+    case (ZERO, _)                                 => ZERO
+    case (_, ZERO)                                 => ZERO
+    case (Atom(lval), Atom(rval))                  => Atom(lval * rval)
+    case (Atom(_), _)                              => rhs
+    case (CNF(lpow, lcoef, lrem), Atom(rval))      => CNF(lpow, lcoef * rval, lrem)
+    case (CNF(lpow, _, _), CNF(rpow, rcoef, rrem)) => CNF(sum(lpow, rpow), rcoef, mul(lhs, rrem))
   }
 
   def sub(lhs: Ordinal, rhs: Ordinal): Ordinal = (lhs, rhs) match {
-    case (Atom(lval), Atom(rval))                         => Atom(BigInt(0) max (lval - rval))
-    case (Atom(_), _)                                     => Atom(0)
+    case (Atom(lval), Atom(rval)) if lval <= rval         => ZERO
+    case (Atom(lval), Atom(rval))                         => Atom(lval - rval)
+    case (Atom(_), _)                                     => ZERO
     case (_, Atom(_))                                     => lhs
-    case (CNF(lpow, lcoef, lrem), CNF(rpow, rcoef, rrem)) =>
-      if (lpow < rpow) Atom(0)
-      else if (lpow > rpow) lhs
-      else if (lcoef < rcoef) Atom(0)
-      else if (lcoef > rcoef) CNF(lpow, lcoef - rcoef, lrem)
-      else sub(lrem, rrem)
+    case (CNF(lpow, lcoef, lrem), CNF(rpow, rcoef, rrem)) => lpow compare rpow match {
+      case c if c < 0         => ZERO
+      case c if c > 0         => lhs
+      case _ if lcoef < rcoef => ZERO
+      case _ if lcoef > rcoef => CNF(lpow, lcoef - rcoef, lrem)
+      case _                  => sub(lrem, rrem)
+    }
   }
 
   def pow(lhs: Ordinal, rhs: Ordinal): Ordinal = lhs match {
-    case Atom(n)                => if (n == 0 || n == 1) lhs else powNaturalToInfOrdinal(n, rhs)
-    case CNF(lpow, lcoef, lrem) => rhs match {
-      case Atom(m)                => powInfOrdinalToNatural(lhs, m)
-      case CNF(rpow, rcoef, rrem) => mul(CNF(mul(lpow, limitPart(rhs)), 1, Atom(0)),
-        powInfOrdinalToNatural(lhs, getNaturalPart(rhs)))
+    case _ if rhs == ZERO => ONE
+    case Atom(n)          => raiseNaturalToInfOrdinal(n, rhs)
+    case CNF(lpow, _, _)  => rhs match {
+      case Atom(m) => raiseInfOrdinalToNatural(lhs, m)
+      case _: CNF  => mul(CNF(mul(lpow, limitPart(rhs)), 1, ZERO),
+        raiseInfOrdinalToNatural(lhs, naturalPart(rhs)))
     }
   }
 
-  private def powLimitOrdinalToNatural(base: Ordinal, power: BigInt): Ordinal =
-    if (power == 0) Atom(1)
+  private def raiseLimitOrdinalToNatural(base: Ordinal, power: BigInt): Ordinal =
+    if (power == 0) ONE
     else if (power == 1) base
     else base match {
-      case Atom(n)                            => Atom(powBigInt(n, power))
-      case CNF(alpha, coefficient, remainder) => mul(CNF(mul(alpha, Atom(power - 1)), 1, Atom(0)), base)
+      case Atom(n)          => Atom(powBigInt(n, power))
+      case CNF(alpha, _, _) => mul(CNF(mul(alpha, Atom(power - 1)), 1, ZERO), base)
     }
 
-  private def powInfOrdinalToNatural(base: Ordinal, power: BigInt): Ordinal =
-    if (power.isValidInt && power.intValue() == 0) Atom(1)
-    else if (power.isValidInt && power.intValue() == 1) base
+  private def raiseInfOrdinalToNatural(base: Ordinal, power: BigInt): Ordinal = {
+    if (power == 0) ONE
+    else if (power == 1) base
     else base match {
-      case Atom(n)                => Atom(powBigInt(n, power))
-      case CNF(bpow, bcoef, brem) =>
-        if (isLimitOrdinal(base)) powLimitOrdinalToNatural(base, power)
-        else mul(powInfOrdinalToNatural(base, power - 1), base)
+      case Atom(n)      => Atom(powBigInt(n, power))
+      case CNF(_, _, _) =>
+        if (isLimitOrdinal(base)) raiseLimitOrdinalToNatural(base, power)
+        else mul(raiseInfOrdinalToNatural(base, power - 1), base)
     }
+  }
 
-  private def powNaturalToInfOrdinal(base: BigInt, rhs: Ordinal): Ordinal =
+  private def raiseNaturalToInfOrdinal(base: BigInt, ordinal: Ordinal): Ordinal =
     if (base == 0 || base == 1) Atom(base)
-    else rhs match {
+    else ordinal match {
       case Atom(m)                            => Atom(powBigInt(base, m))
       case CNF(power, coefficient, remainder) =>
-        if (power == Atom(1)) {
+        if (power == ONE) {
           require(remainder.isInstanceOf[Atom])
-          CNF(Atom(coefficient), powBigInt(base, remainder.asInstanceOf[Atom].value), Atom(0))
+          CNF(Atom(coefficient), powBigInt(base, remainder.asInstanceOf[Atom].value), ZERO)
         } else remainder match {
-          case atom: Atom =>
-            CNF(CNF(sub(power, Atom(1)), coefficient, Atom(0)), powBigInt(base, atom.value), Atom(0))
-          case _          =>
-            val (ce, cc): (Ordinal, BigInt) = powNaturalToInfOrdinal(base, remainder) match {
-              case Atom(n)      => (Atom(0), n)
+          case Atom(v) =>
+            CNF(CNF(sub(power, ONE), coefficient, ZERO), powBigInt(base, v), ZERO)
+          case _       =>
+            val (ce, cc): (Ordinal, BigInt) = raiseNaturalToInfOrdinal(base, remainder) match {
+              case Atom(n)      => (ZERO, n)
               case CNF(e, c, _) => (e, c)
             }
-            CNF(CNF(sub(power, Atom(1)), 1, ce), cc, Atom(0))
+            CNF(CNF(sub(power, ONE), 1, ce), cc, ZERO)
         }
     }
 
@@ -94,13 +101,13 @@ object Ordinal {
     if (power.isValidInt) base pow power.intValue()
     else throw new ArithmeticException(s"too big power: $power")
 
-  @tailrec private def getNaturalPart(ordinal: Ordinal): BigInt = ordinal match {
+  @tailrec private def naturalPart(ordinal: Ordinal): BigInt = ordinal match {
     case Atom(x)              => x
-    case CNF(_, _, remainder) => getNaturalPart(remainder)
+    case CNF(_, _, remainder) => naturalPart(remainder)
   }
 
   private def limitPart(ordinal: Ordinal): Ordinal = ordinal match {
-    case Atom(_)                            => Atom(0)
+    case Atom(_)                            => ZERO
     case CNF(power, coefficient, remainder) => CNF(power, coefficient, limitPart(remainder))
   }
 
@@ -121,13 +128,14 @@ case class Atom(value: BigInt) extends Ordinal {
 
 case class CNF(power: Ordinal, coefficient: BigInt, remainder: Ordinal) extends Ordinal {
   override def compare(that: Ordinal): Int = that match {
-    case Atom(_)                               => 1
-    case CNF(_power, _coefficient, _remainder) => power compare _power match {
-      case 0   => coefficient compare _coefficient match {
-        case 0   => remainder compare _remainder
-        case cmp => cmp
+    case _: Atom => 1
+    case other: CNF  => // cnfComparator.compare(this, c)
+      this.power.compare(other.power) match {
+        case 0 => this.coefficient.compare(other.coefficient) match {
+          case 0 => this.remainder.compare(other.remainder)
+          case c => c
+        }
+        case c => c
       }
-      case cmp => cmp
-    }
   }
 }
