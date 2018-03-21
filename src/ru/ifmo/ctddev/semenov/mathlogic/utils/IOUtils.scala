@@ -24,7 +24,7 @@ object IOUtils {
   private val propositionalParser = new PropositionalParser()
 
   def readExpressions(input: InputStream): List[Expression] =
-    Source.fromInputStream(input).getLines().map(propositionalParser.parse).toList
+    Source.fromInputStream(input).getLines().filterNot(_.isEmpty).map(propositionalParser.parse).toList
 
   def readExpressions(fileName: String): List[Expression] =
     readExpressions(Files.newInputStream(Paths.get(fileName)))
