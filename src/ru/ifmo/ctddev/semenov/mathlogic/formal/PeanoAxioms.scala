@@ -1,13 +1,13 @@
 package ru.ifmo.ctddev.semenov.mathlogic.formal
 
 import ru.ifmo.ctddev.semenov.mathlogic.expressions.{ExactMatcher, Expression}
-import ru.ifmo.ctddev.semenov.mathlogic.parsing.PropositionalParser
+import ru.ifmo.ctddev.semenov.mathlogic.parsing.FormalParser
 
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
 object PeanoAxioms {
-  private val parser = new PropositionalParser()
+  private val parser = new FormalParser()
 
   private val axiomsString = List(
     "a=b->a'=b'",

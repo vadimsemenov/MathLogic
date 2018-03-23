@@ -99,7 +99,7 @@ class PropositionalLexer(string: String) extends Lexer {
 }
 
 class FormalLexer(string: String) extends PropositionalLexer(string) {
-  override def nonVar: List[Lexeme] = super.nonVar ::: List(EQUALS, PLUS, TIMES, FORALL, EXISTS)
+  override def nonVar: List[Lexeme] = super.nonVar ::: List(EQUALS, ZERO, APOSTROPHE, PLUS, TIMES, FORALL, EXISTS)
 
   override protected def parseText(): Boolean = {
     if (Utils.isAlphabetic(string.charAt(ptr))) {
