@@ -6,7 +6,7 @@ import ru.ifmo.ctddev.semenov.mathlogic.parsing.PropositionalParser
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
-object Axioms {
+object LogicAxioms {
   private final val parser = new PropositionalParser(true)
 
   val axiomsString = List(

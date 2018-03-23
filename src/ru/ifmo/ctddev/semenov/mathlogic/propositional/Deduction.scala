@@ -16,7 +16,7 @@ object Deduction {
     val newProve = new mutable.ArrayBuffer[Expression](proveSize * 3 + 4) // upper bound
     var wasAlphaAlpha = false
     for (AnnotatedExpression(_, exp, annotation) <- annotatedProof) annotation match {
-      case Axiom(_) | Assumption(_) =>
+      case LogicAxiom(_) | Assumption(_) =>
         if (exp != alpha) {
           newProve += exp
           newProve += exp -> (alpha -> exp)

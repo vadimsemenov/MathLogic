@@ -16,43 +16,32 @@ object ProofChecker {
     val (assumptions, proof) = derivation
     val annotated = new ArrayBuffer[AnnotatedExpression](proof.size)
     val rights = new mutable.HashMap[Expression, mutable.MutableList[Int]]()
-    val proved = new mutable.ArrayBuffer[Expression]()
     val provedIdx = new mutable.HashMap[Expression, Int]()
     val idxByAssumption = new mutable.HashMap[Expression, Int]()
     for (index <- assumptions.indices) {
       idxByAssumption.put(assumptions(index), index)
     }
 
-    def createAnnotation(expression: Expression): Annotation = {
-      Axioms.getIdx(expression) match {
-        case None           => idxByAssumption get expression match {
-          case Some(idx) =>
-            Assumption(idx + 1)
-          case None      => rights get expression match {
-            case Some(list) =>
-              for (snd <- list) {
-                val exp = proved(snd).asInstanceOf[->]
-                provedIdx get exp.lhs match {
-                  case Some(fst) =>
-                    //                    log(s"M.P. ${fst + 1},${snd + 1}")
-                    return ModusPonens(fst + 1, snd + 1)
-                  case None      =>
-                }
-              }
-              NotProved
-            case None       =>
-              NotProved
-          }
-        }
-        case Some(axiomIdx) =>
-          //          log(s"Axiom schema #${axiomIdx + 1}")
-          Axiom(axiomIdx + 1)
-      }
+    def asLogicAxiom(expression: Expression): Option[Annotation] = LogicAxioms getIdx expression map (LogicAxiom compose (_ + 1))
+
+//    def asPeanoAxiom(expression: Expression): Option[Annotation] = PeanoAxioms getIdx expression map (PeanoAxiom compose (_ + 1))
+    def asAssumption(expression: Expression): Option[Annotation] = idxByAssumption get expression map (Assumption compose (_ + 1))
+    def asPredicateAxiom(expression: Expression): Option[Annotation] = ???
+    def asModusPonens(expression: Expression): Option[Annotation] = rights get expression flatMap { list =>
+      list.toStream.flatMap(snd => {
+        val expr = proof(snd).asInstanceOf[->]
+        provedIdx.get(expr.lhs).map(fst => ModusPonens(fst + 1, snd + 1))
+      }).headOption
     }
 
-    var index = 0
+    def createAnnotation(expression: Expression): Annotation = asLogicAxiom(expression)
+//      .orElse(asPeanoAxiom(expression))
+      .orElse(asAssumption(expression))
+      .orElse(asModusPonens(expression))
+      .getOrElse(NotProved)
+
     var failed = false
-    for (expression <- proof) {
+    for ((expression, index) <- proof.zipWithIndex) {
       val annotation = if (failed) NotProved else createAnnotation(expression)
 
       if (!failed) {
@@ -60,18 +49,13 @@ object ProofChecker {
           log(s"The proof is incorrect starting from line #${index + 1}")
           failed = true
         } else {
-          proved += expression
           provedIdx.put(expression, index)
           expression match {
-            case casted: -> =>
-              val list: mutable.MutableList[Int] = rights.getOrElse(casted.rhs, new mutable.MutableList[Int])
-              if (list.isEmpty) rights.put(casted.rhs, list)
-              list += index
+            case (_ -> rhs) => rights.getOrElseUpdate(rhs, new mutable.MutableList[Int]) += index
             case _          =>
           }
         }
       }
-      index += 1
       annotated += AnnotatedExpression(index, expression, annotation)
     }
     annotated
