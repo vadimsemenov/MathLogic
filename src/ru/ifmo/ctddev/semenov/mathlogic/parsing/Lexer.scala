@@ -9,6 +9,7 @@ trait Lexer {
   def hasNext: Boolean
   def current(): Lexeme
   def next(): Lexeme
+  protected def nonVar: List[Lexeme]
 }
 
 /**
@@ -17,10 +18,10 @@ trait Lexer {
   * @param string - String to split by lexemes
   */
 class PropositionalLexer(string: String) extends Lexer {
-  private val nonVar = List(OPENED, CLOSED, ARROW, STICK, AMPERSAND, BANG, FOREACH, EXISTS)
+  override def nonVar: List[Lexeme] = List(OPENED, CLOSED, ARROW, STICK, AMPERSAND, BANG, COMMA, TURNSTILE)
 
-  private var ptr: Int = 0
-  private var currentToken: Lexeme = _
+  protected var ptr: Int = 0
+  protected var currentToken: Lexeme = _
 
   // initialize currentToken
   move()
@@ -35,6 +36,7 @@ class PropositionalLexer(string: String) extends Lexer {
 
   override def hasNext: Boolean = {
     skipWhitespaces()
+    currentToken = if (ptr < string.length) UNDEFINED else EOL
     ptr < string.length
   }
 
@@ -51,26 +53,65 @@ class PropositionalLexer(string: String) extends Lexer {
       currentToken = EOL
       return
     }
+    if (parseTurnstile()) return
+    if (parseNonVar()) return
+    if (parseText()) return
+    throw new IllegalStateException(s"unknown token at $ptr position")
+  }
+
+  protected def parseTurnstile(): Boolean = {
+    if (string.startsWith(TURNSTILE.toString, ptr)) {
+      currentToken = TURNSTILE
+      ptr += TURNSTILE.toString.length
+      return true
+    }
+    false
+  }
+
+  protected def parseNonVar(): Boolean = {
     // check logical connectives
     // NB: every two connectives differ in first character
+    // NB: be careful with turnstile
     for (nv <- nonVar) {
       val str = nv.toString
       if (string.startsWith(str, ptr)) {
         currentToken = nv
         ptr += str.length
-        return
+        return true
       }
     }
+    false
+  }
+
+  protected def parseText(): Boolean = {
     // parse propositional variable
-    if (Character.isUpperCase(string.charAt(ptr))) {
+    if (Utils.isUpperCase(string.charAt(ptr))) {
       var end = ptr + 1
       while (end < string.length && Utils.isDigit(string.charAt(end))) {
         end += 1
       }
-      currentToken = VAR(string.substring(ptr, end))
+      currentToken = PREDICATE(string.substring(ptr, end))
       ptr = end
-      return
+      return true
     }
-    throw new IllegalStateException(s"unknown token at $ptr position")
+    false
+  }
+}
+
+class FormalLexer(string: String) extends PropositionalLexer(string) {
+  override def nonVar: List[Lexeme] = super.nonVar ::: List(EQUALS, PLUS, TIMES, FORALL, EXISTS)
+
+  override protected def parseText(): Boolean = {
+    if (Utils.isAlphabetic(string.charAt(ptr))) {
+      var end = ptr + 1
+      while (end < string.length && Utils.isDigit(string.charAt(end))) {
+        end += 1
+      }
+      val ident = string.substring(ptr, end)
+      currentToken = if (Utils.isLowerCase(string.charAt(ptr))) VAR(ident) else PREDICATE(ident)
+      ptr = end
+      return true
+    }
+    false
   }
 }

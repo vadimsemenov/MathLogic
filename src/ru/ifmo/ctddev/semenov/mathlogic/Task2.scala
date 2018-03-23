@@ -17,11 +17,9 @@ object Task2 {
     val (in, out) = if (args.length < 2) (System.in, System.out)
     else (Files.newInputStream(Paths.get(args(0))), Files.newOutputStream(Paths.get(args(1))))
     val parser = new PropositionalParser()
-    val input = ArrayBuffer(Source.fromInputStream(in).getLines().toList: _*)
+    val input = ArrayBuffer(Source.fromInputStream(in).getLines().filter(_.nonEmpty).toList: _*)
     val (header, proofLines) = (input.head, input.tail)
-    val sep = header.lastIndexOf("|-")
-    val assumptions = ArrayBuffer(header.substring(0, sep).split("\\s+|,").filter(_.nonEmpty).map(parser.parse): _*)
-    val beta = parser parse header.substring(sep + 2)
+    val (assumptions, beta) = parser parseHeader header
     val writer = new PrintWriter(out)
     try {
       if (beta != (parser parse proofLines.last)) {

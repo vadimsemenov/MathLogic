@@ -20,6 +20,10 @@ package object propositional {
 
   object Context {
     def apply(expressions: Expression*): Context = ArrayBuffer(expressions: _*)
+
+//    implicit class ContextOps(val context: Context) {
+//      def +=(expression: Expression): Context = context += expression
+//    }
   }
 
   object Derivation {

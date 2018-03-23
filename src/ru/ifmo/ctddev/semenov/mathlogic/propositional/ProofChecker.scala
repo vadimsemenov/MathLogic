@@ -23,7 +23,6 @@ object ProofChecker {
     }
 
     def asLogicAxiom(expression: Expression): Option[Annotation] = LogicAxioms getIdx expression map (LogicAxiom compose (_ + 1))
-
 //    def asPeanoAxiom(expression: Expression): Option[Annotation] = PeanoAxioms getIdx expression map (PeanoAxiom compose (_ + 1))
     def asAssumption(expression: Expression): Option[Annotation] = idxByAssumption get expression map (Assumption compose (_ + 1))
     def asPredicateAxiom(expression: Expression): Option[Annotation] = ???

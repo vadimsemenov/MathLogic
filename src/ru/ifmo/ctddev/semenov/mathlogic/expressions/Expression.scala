@@ -19,14 +19,14 @@ abstract case class BinaryExpression(lhs: Expression, rhs: Expression, delim: St
 }
 
 abstract case class Quantifier(variable: Variable, expression: Expression, symbol: String) extends Expression {
-  override def toString: String = symbol + variable + " " + wrap(expression)
+  override def toString: String = symbol + variable + wrap(expression)
 }
 
 trait ArithmeticExpression extends Expression {
-  def +(that: ArithmeticExpression): ArithmeticExpression = new +(this, that)
-  def *(that: ArithmeticExpression): ArithmeticExpression = new *(this, that)
-  def ===(that: ArithmeticExpression): Expression         = new ===(this, that)
-  def succ: Succ                                          = Succ(this)
+  def +(that: ArithmeticExpression): Function  = new +(this, that)
+  def *(that: ArithmeticExpression): Function  = new *(this, that)
+  def ===(that: ArithmeticExpression): === = new ===(this, that)
+  def succ: Succ                           = Succ(this)
 }
 
 
@@ -89,21 +89,26 @@ case class Gap(name: String) extends Expression {
 
 // make case classes
 object & {
+  def apply(lhs: Expression, rhs: Expression): & = lhs & rhs
   def unapply(arg: &): Some[(Expression, Expression)] = Some(arg.lhs, arg.rhs)
 }
 
 object V {
+  def apply(lhs: Expression, rhs: Expression): V = lhs V rhs
   def unapply(arg: V): Some[(Expression, Expression)] = Some(arg.lhs, arg.rhs)
 }
 
 object -> {
+  def apply(lhs: Expression, rhs: Expression): -> = lhs -> rhs
   def unapply(arg: ->): Some[(Expression, Expression)] = Some(arg.lhs, arg.rhs)
 }
 
 object @@ {
+  def apply(variable: Variable, expression: Expression): @@ = new @@(variable, expression)
   def unapply(arg: @@): Some[(Variable, Expression)] = Some(arg.variable, arg.expression)
 }
 
 object ?? {
+  def apply(variable: Variable, expression: Expression): ?? = new ??(variable, expression)
   def unapply(arg: ??): Some[(Variable, Expression)] = Some(arg.variable, arg.expression)
 }
