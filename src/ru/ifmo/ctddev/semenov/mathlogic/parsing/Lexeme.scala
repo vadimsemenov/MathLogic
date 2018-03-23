@@ -14,6 +14,8 @@ case object STICK             extends Lexeme { override def toString = "|" }
 case object AMPERSAND         extends Lexeme { override def toString = "&" }
 case object BANG              extends Lexeme { override def toString = "!" }
 case class  VAR(name: String) extends Lexeme { override def toString = name }
+case object FOREACH           extends Lexeme { override def toString = "@" }
+case object EXISTS            extends Lexeme { override def toString = "?" }
 
 // Auxiliary Tokens
 case object EPS               extends Lexeme { override def toString = "ε" }

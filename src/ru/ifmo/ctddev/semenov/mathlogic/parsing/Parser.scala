@@ -1,6 +1,6 @@
 package ru.ifmo.ctddev.semenov.mathlogic.parsing
 
-import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Expression, Variable}
+import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Expression, Gap, Variable}
 
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
@@ -14,10 +14,10 @@ trait Parser {
   *
   * NB: not thread-safe
   */
-class PropositionalParser extends Parser {
-  private var lexer: Lexer = null
+class PropositionalParser(axiomSchema: Boolean = false) extends Parser {
+  private var lexer: Lexer = _
 
-  override def parse(string: String) = {
+  override def parse(string: String): Expression = {
     lexer = new PropositionalLexer(string)
     parseExpression()
   }
@@ -70,7 +70,7 @@ class PropositionalParser extends Parser {
 
   private def consumeVar(name: String): Expression = {
     consume(VAR(name))
-    Variable(name)
+    if (axiomSchema) Gap(name) else Variable(name)
   }
 
   private def consume(token: Lexeme): Unit = {

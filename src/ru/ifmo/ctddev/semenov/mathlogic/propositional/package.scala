@@ -7,6 +7,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
+//noinspection DoubleNegationScala
 package object propositional {
   type Proof = ArrayBuffer[Expression]
   type AnnotatedProof = ArrayBuffer[AnnotatedExpression]

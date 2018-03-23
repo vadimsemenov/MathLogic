@@ -23,43 +23,47 @@ class ReverseMatcher(expression: Expression) extends Matcher(expression) {
   }
 }
 
+class ExactMatcher(expression: Expression) extends Matcher(expression) {
+  override def apply(expression: Expression): Boolean = {
+    val result = InternalMatcher.internalExactMatch(this.expression, expression)
+    map.clear()
+    result
+  }
+}
+
 private object InternalMatcher {
-  def internalMatch(fst: Expression, snd: Expression, onVariable: (String, Expression) => Boolean): Boolean = fst match {
-    case lhs -> rhs     =>
-      if (!snd.isInstanceOf[->]) false
-      else {
-        val casted = snd.asInstanceOf[->]
-        internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
-      }
-    case lhs & rhs      =>
-      if (!snd.isInstanceOf[&]) false
-      else {
-        val casted = snd.asInstanceOf[&]
-        internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
-      }
-    case lhs V rhs      =>
-      if (!snd.isInstanceOf[V]) false
-      else {
-        val casted = snd.asInstanceOf[V]
-        internalMatch(lhs, casted.lhs, onVariable) && internalMatch(rhs, casted.rhs, onVariable)
-      }
-    case !(arg)         => if (!snd.isInstanceOf[!]) false else internalMatch(arg, snd.asInstanceOf[!].arg, onVariable)
-    case Variable(name) => onVariable(name, snd)
+  def matchAll(fst: Seq[Expression], snd: Seq[Expression], onGap: (String, Expression) => Boolean): Boolean =
+    fst.size == snd.size && (fst zip snd forall (p => internalMatch(p._1, p._2, onGap)))
+
+  def internalMatch(fst: Expression, snd: Expression, onGap: (String, Expression) => Boolean): Boolean = (fst, snd) match {
+    case (Gap(name), _)                             => onGap(name, snd)
+    case (f: (!), s: (!))                           => internalMatch(f.arg, s.arg, onGap)
+    case (f: Variable, s: Variable)                 => f.name == s.name
+    case (f: Succ, s: Succ)                         => internalMatch(f.expression, s.expression, onGap)
+    case (_: Zero, _: Zero)                         => true
+    case (f: Predicate, s: Predicate)               => f.name == s.name && matchAll(f.args, s.args, onGap)
+    case (f: Function, s: Function)                 => f.name == s.name && matchAll(f.args, s.args, onGap)
+    case (f: BinaryExpression, s: BinaryExpression) =>
+      internalMatch(f.lhs, s.lhs, onGap) && internalMatch(f.rhs, s.rhs, onGap)
+    case (f: Quantifier, s: Quantifier)             =>
+      f.symbol == s.symbol && internalMatch(f.expression, s.expression, (name: String, expression: Expression) => {
+        if (name == f.variable.name) expression match {
+          case Variable(thatName) => s.variable.name == thatName
+          case _                  => false
+        } else onGap(name, expression)
+      })
+    case _                                          => false
   }
 
-  def internalExactMatch(fst: Expression, snd: Expression): Boolean = {
-    InternalMatcher.internalMatch(fst, snd, (name: String, exp: Expression) => exp match {
-      case Variable(otherName) => name == otherName
-      case _                   => false
-    })
-  }
+  def internalExactMatch(fst: Expression, snd: Expression): Boolean =
+    InternalMatcher.internalMatch(fst, snd, (_, _: Expression) => false) // shouldn't have gaps
 
-  def internalMatch(pattern: Expression, expression: Expression, map: mutable.Map[String, Expression]): Boolean = {
+  def internalMatch(pattern: Expression, expression: Expression, substitution: mutable.Map[String, Expression]): Boolean = {
     InternalMatcher.internalMatch(pattern, expression, (name: String, expression: Expression) => {
-      if (map.contains(name)) {
-        internalExactMatch(map(name), expression)
+      if (substitution.contains(name)) {
+        internalExactMatch(substitution(name), expression)
       } else {
-        map.put(name, expression)
+        substitution.put(name, expression)
         true
       }
     })

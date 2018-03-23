@@ -7,11 +7,6 @@ package ru.ifmo.ctddev.semenov.mathlogic.expressions
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
 sealed trait Expression {
-  def wrap(expression: Expression) = expression match {
-    case !(_) | Variable(_) => expression.toString
-    case _                  => '(' + expression.toString + ')'
-  }
-
   def ->(other: Expression): ->  = new ->(this, other)
   def ->:(other: Expression): -> = new ->(this, other) // right-associative
   def &(other: Expression): &    = new &(this, other)
@@ -19,23 +14,96 @@ sealed trait Expression {
   def unary_!(): !               = new !(this)
 }
 
+abstract case class BinaryExpression(lhs: Expression, rhs: Expression, delim: String) extends Expression {
+  override def toString: String = wrap(lhs) + delim + wrap(rhs)
+}
+
+abstract case class Quantifier(variable: Variable, expression: Expression, symbol: String) extends Expression {
+  override def toString: String = symbol + variable + " " + wrap(expression)
+}
+
+trait ArithmeticExpression extends Expression {
+  def +(that: ArithmeticExpression): ArithmeticExpression = new +(this, that)
+  def *(that: ArithmeticExpression): ArithmeticExpression = new *(this, that)
+  def ===(that: ArithmeticExpression): Expression         = new ===(this, that)
+  def succ: Succ                                          = Succ(this)
+}
+
+
 // antecedent->consequent
-case class ->(lhs: Expression, rhs: Expression) extends Expression {
-  override def toString = wrap(lhs) + "->" + wrap(rhs)
-}
+class ->(override val lhs: Expression, override val rhs: Expression) extends BinaryExpression(lhs, rhs, "->")
 
-case class &(lhs: Expression, rhs: Expression) extends Expression {
-  override def toString = wrap(lhs) + "&" + wrap(rhs)
-}
+class &(override val lhs: Expression, override val rhs: Expression) extends BinaryExpression(lhs, rhs, "&")
 
-case class V(lhs: Expression, rhs: Expression) extends Expression {
-  override def toString = wrap(lhs) + "|" + wrap(rhs)
-}
+class V(override val lhs: Expression, override val rhs: Expression) extends BinaryExpression(lhs, rhs, "|")
 
 case class !(arg: Expression) extends Expression {
-  override def toString = "!" + wrap(arg)
+  override def toString: String = "!" + wrap(arg)
 }
 
-case class Variable(name: String) extends Expression {
-  override def toString = name
+
+class @@(override val variable: Variable, override val expression: Expression) extends Quantifier(variable, expression, "@")
+
+class ??(override val variable: Variable, override val expression: Expression) extends Quantifier(variable, expression, "?")
+
+case class Predicate(name: String, args: Expression*) extends Expression {
+  override def toString: String = name + (if (args.isEmpty) "" else args.mkString("(", ",", ")"))
+}
+
+class ===(lhs: ArithmeticExpression, rhs: ArithmeticExpression) extends Predicate("=", lhs, rhs) {
+  override def toString: String = lhs + "=" + rhs
+}
+
+
+// Arithmetic expressions
+case class Variable(name: String) extends ArithmeticExpression {
+  override def toString: String = name
+}
+
+case class Succ(expression: ArithmeticExpression) extends ArithmeticExpression {
+  override def toString: String = wrap(expression) + "'"
+}
+
+// +, * -- also functions
+case class Function(name: String, args: ArithmeticExpression*) extends ArithmeticExpression {
+  require(args.nonEmpty)
+  override def toString: String = name + args.mkString("(", ",", ")")
+}
+
+class +(lhs: ArithmeticExpression, rhs: ArithmeticExpression) extends Function("+", lhs, rhs) {
+  override def toString: String = wrap(lhs) + "+" + wrap(rhs)
+}
+
+class *(lhs: ArithmeticExpression, rhs: ArithmeticExpression) extends Function("*", lhs, rhs) {
+  override def toString: String = wrap(lhs) + "*" + wrap(rhs)
+}
+
+case class Zero() extends ArithmeticExpression {
+  override def toString: String = "0"
+}
+
+// for axiom schemas
+case class Gap(name: String) extends Expression {
+  override def toString: String = "_" + name
+}
+
+// make case classes
+object & {
+  def unapply(arg: &): Some[(Expression, Expression)] = Some(arg.lhs, arg.rhs)
+}
+
+object V {
+  def unapply(arg: V): Some[(Expression, Expression)] = Some(arg.lhs, arg.rhs)
+}
+
+object -> {
+  def unapply(arg: ->): Some[(Expression, Expression)] = Some(arg.lhs, arg.rhs)
+}
+
+object @@ {
+  def unapply(arg: @@): Some[(Variable, Expression)] = Some(arg.variable, arg.expression)
+}
+
+object ?? {
+  def unapply(arg: ??): Some[(Variable, Expression)] = Some(arg.variable, arg.expression)
 }

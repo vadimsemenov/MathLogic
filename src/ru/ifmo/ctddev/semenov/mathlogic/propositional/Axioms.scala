@@ -7,7 +7,7 @@ import ru.ifmo.ctddev.semenov.mathlogic.parsing.PropositionalParser
   * @author Vadim Semenov (semenov@rain.ifmo.ru)
   */
 object Axioms {
-  private final val parser = new PropositionalParser()
+  private final val parser = new PropositionalParser(true)
 
   val axiomsString = List(
     "A->B->A",

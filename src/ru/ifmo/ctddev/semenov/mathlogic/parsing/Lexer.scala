@@ -17,28 +17,28 @@ trait Lexer {
   * @param string - String to split by lexemes
   */
 class PropositionalLexer(string: String) extends Lexer {
-  private val nonVar = List(OPENED, CLOSED, ARROW, STICK, AMPERSAND, BANG)
+  private val nonVar = List(OPENED, CLOSED, ARROW, STICK, AMPERSAND, BANG, FOREACH, EXISTS)
 
   private var ptr: Int = 0
-  private var currentToken: Lexeme = null
+  private var currentToken: Lexeme = _
 
   // initialize currentToken
   move()
 
-  override def current() = currentToken
+  override def current(): Lexeme = currentToken
 
-  override def next() = {
+  override def next(): Lexeme = {
     if (!hasNext) throw new IllegalStateException("!hasNext")
     move()
     currentToken
   }
 
-  override def hasNext = {
+  override def hasNext: Boolean = {
     skipWhitespaces()
     ptr < string.length
   }
 
-  private def skipWhitespaces() = {
+  private def skipWhitespaces(): Unit = {
     while (ptr < string.length && Utils.isWhitespace(string.charAt(ptr))) {
       ptr += 1
     }
