@@ -4,6 +4,7 @@ import java.io.PrintWriter
 import java.nio.file.{Files, Paths}
 
 import ru.ifmo.ctddev.semenov.mathlogic.parsing.FormalParser
+import ru.ifmo.ctddev.semenov.mathlogic.propositional.{Derivation, Proof, ProofChecker}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
@@ -25,6 +26,8 @@ object Task4 {
 //        writer println "Исходное доказательство некорректно. (Должно заканчиваться строкой '" + beta + "')"
 //      } else {
         writer println s"${assumptions.mkString(",")}|-$beta"
+        val annotated = ProofChecker.annotate(Derivation(assumptions, proofLines map parser.parse), checkReducible = true)
+        annotated.foreach(writer.println)
         // TODO
 //      }
     } finally {

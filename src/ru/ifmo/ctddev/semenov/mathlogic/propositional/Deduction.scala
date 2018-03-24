@@ -10,7 +10,7 @@ import scala.collection.mutable
 object Deduction {
   def apply(derivation: Derivation): Option[Derivation] = {
     val (assumption, proof) = derivation
-    val annotatedProof = ProofChecker.annotate(assumption, proof)
+    val annotatedProof = ProofChecker.annotate(derivation)
     val alpha = assumption.last
     val proveSize = proof.size
     val newProve = new mutable.ArrayBuffer[Expression](proveSize * 3 + 4) // upper bound

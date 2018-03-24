@@ -60,8 +60,8 @@ case class Variable(name: String) extends ArithmeticExpression {
   override def toString: String = name
 }
 
-case class Succ(expression: ArithmeticExpression) extends ArithmeticExpression {
-  override def toString: String = wrap(expression) + "'"
+case class Succ(arg: ArithmeticExpression) extends ArithmeticExpression {
+  override def toString: String = wrap(arg) + "'"
 }
 
 // +, * -- also functions

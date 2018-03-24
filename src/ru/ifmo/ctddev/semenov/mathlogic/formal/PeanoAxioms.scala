@@ -1,6 +1,6 @@
 package ru.ifmo.ctddev.semenov.mathlogic.formal
 
-import ru.ifmo.ctddev.semenov.mathlogic.expressions.{ExactMatcher, Expression}
+import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Matcher, Expression}
 import ru.ifmo.ctddev.semenov.mathlogic.parsing.FormalParser
 
 /**
@@ -23,9 +23,9 @@ object PeanoAxioms {
   val axioms: List[Expression] = axiomsString map parser.parse
 
   def getIdx(expression: Expression): Option[Int] = {
-    val matcher = new ExactMatcher(expression)
+    val matches: Expression => Boolean = Matcher.exactMatch(expression)(_)
     for (idx <- axioms.indices) {
-      if (matcher(axioms(idx))) {
+      if (matches(axioms(idx))) {
         return Some(idx)
       }
     }

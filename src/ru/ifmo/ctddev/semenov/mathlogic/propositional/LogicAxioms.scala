@@ -1,6 +1,6 @@
 package ru.ifmo.ctddev.semenov.mathlogic.propositional
 
-import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Expression, ReverseMatcher}
+import ru.ifmo.ctddev.semenov.mathlogic.expressions.{Expression, Matcher, ReverseMatcher}
 import ru.ifmo.ctddev.semenov.mathlogic.parsing.PropositionalParser
 
 /**
@@ -25,10 +25,10 @@ object LogicAxioms {
   val axioms = axiomsString map parser.parse
 
   def getIdx(expression: Expression): Option[Int] = {
-    val matcher = new ReverseMatcher(expression)
+    val matches = Matcher.reverseMatch(expression)(_)
     var axiomNumber = 0
     for (axiom <- axioms) {
-      if (matcher(axiom)) {
+      if (matches(axiom)) {
         return Some(axiomNumber)
       }
       axiomNumber += 1

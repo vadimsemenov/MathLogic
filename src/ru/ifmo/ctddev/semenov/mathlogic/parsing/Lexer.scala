@@ -9,6 +9,7 @@ trait Lexer {
   def hasNext: Boolean
   def current(): Lexeme
   def next(): Lexeme
+  def lookAheadForPredicate: Boolean
   protected def nonVar: List[Lexeme]
 }
 
@@ -39,6 +40,10 @@ class PropositionalLexer(string: String) extends Lexer {
     currentToken = if (ptr < string.length) UNDEFINED else EOL
     ptr < string.length
   }
+
+  override def lookAheadForPredicate: Boolean = currentToken.isInstanceOf[PREDICATE]
+
+  override def toString: String = s"Lexer(ptr=$ptr,str=[$string])"
 
   private def skipWhitespaces(): Unit = {
     while (ptr < string.length && Utils.isWhitespace(string.charAt(ptr))) {
@@ -100,6 +105,27 @@ class PropositionalLexer(string: String) extends Lexer {
 
 class FormalLexer(string: String) extends PropositionalLexer(string) {
   override def nonVar: List[Lexeme] = super.nonVar ::: List(EQUALS, ZERO, APOSTROPHE, PLUS, TIMES, FORALL, EXISTS)
+  private var nextEq = -1 // dirty hack to improve time complexity while looking ahead
+
+  override def lookAheadForPredicate: Boolean = {
+    if (super.lookAheadForPredicate) return true
+    if (nextEq < ptr) {
+      nextEq = string.indexOf('=', ptr)
+    }
+    if (nextEq < 0) false else {
+      var balance = 0
+      for (i <- math.max(0, ptr - 1) until nextEq) {
+        val ch = string.charAt(i)
+        if (ch == '(') {
+          balance += 1
+        } else if (ch == ')') {
+          balance -= 1
+          if (balance < 0) return false
+        }
+      }
+      balance == 0
+    }
+  }
 
   override protected def parseText(): Boolean = {
     if (Utils.isAlphabetic(string.charAt(ptr))) {

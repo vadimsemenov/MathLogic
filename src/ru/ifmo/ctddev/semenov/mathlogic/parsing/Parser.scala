@@ -83,7 +83,7 @@ class PropositionalParser(axiomSchema: Boolean = false) extends Parser {
     !parseConjunct()
   }
 
-  protected def parseBetweenParenthesis[T <: Expression](parseAction: () => T)(): T = {
+  protected def parseBetweenParenthesis[T](parseAction: () => T)(): T = {
     consume(OPENED)
     val expression = parseAction()
     consume(CLOSED)
@@ -97,7 +97,7 @@ class PropositionalParser(axiomSchema: Boolean = false) extends Parser {
 
   protected def consume(token: Lexeme): Unit = {
     if (lexer.current().getClass != token.getClass) {
-      throw new IllegalStateException("expected: " + token + ", but found: " + lexer.current())
+      throw new IllegalStateException("expected: " + token + ", but found: " + lexer.current() + ", " + lexer.toString)
     }
     if (lexer.hasNext) {
       lexer.next()
@@ -110,9 +110,9 @@ class FormalParser extends PropositionalParser {
 
   override protected def parseConjunct(): Expression = lexer.current() match {
     case BANG            => parseNegation()
-    case OPENED          => parseBetweenParenthesis(parseExpression)()
     case q: LQuantifier  => parseQuantifier(q)
     case PREDICATE(name) => parsePredicate(name)
+    case OPENED          => if (lexer.lookAheadForPredicate) parseEquality() else parseBetweenParenthesis(parseExpression)()
     case _               => parseEquality()
   }
 
@@ -168,7 +168,7 @@ class FormalParser extends PropositionalParser {
       case OPENED => parseBetweenParenthesis(parseTerm)()
       case ZERO   => parseZero()
       case v: VAR => parseVarOrFunc(v)
-      case _      => throw new IllegalStateException(s"Unexpected lexeme: ${lexer.current()}")
+      case _      => throw new IllegalStateException(s"Unexpected lexeme: ${lexer.current()}, lexer=$lexer")
     }
     while (lexer.current() == APOSTROPHE) {
       consume(APOSTROPHE)
@@ -188,8 +188,9 @@ class FormalParser extends PropositionalParser {
     else Variable(variable.name)
   }
 
-  protected def parseArgs(): Array[ArithmeticExpression] = {
-    consume(OPENED)
+  protected def parseArgs(): Array[ArithmeticExpression] = parseBetweenParenthesis(parseArgsInside)
+
+  protected def parseArgsInside(): Array[ArithmeticExpression] = {
     val args  = Array.newBuilder[ArithmeticExpression]
     var first = true
     while (lexer.current() != CLOSED) {
@@ -197,7 +198,6 @@ class FormalParser extends PropositionalParser {
       else consume(COMMA)
       args += parseTerm()
     }
-    consume(CLOSED)
     args.result()
   }
 }
