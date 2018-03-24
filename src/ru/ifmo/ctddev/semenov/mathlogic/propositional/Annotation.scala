@@ -33,6 +33,7 @@ case class LogicAxiom(num: Int) extends Annotation {
 
 case class PredicateAxiom(num: Int) extends Annotation {
   require(1 <= num && num <= 2)
+  def isUniversalAxiom: Boolean = num == 1
   override def isPredicateAxiom: Boolean = true
   override def toString: String = s"Сх. акс. ${if (num == 1) "всеобщности" else "существования"}"
 }

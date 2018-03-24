@@ -120,7 +120,10 @@ object ProofChecker {
   def check(derivation: Derivation, checkReducible: Boolean = false): Verdict = {
     val annotatedProof = annotate(derivation, checkReducible)
     if (annotatedProof.last.annotation.isProved) Correct
-    else Incorrect(1 + annotatedProof.indexWhere(e => !e.annotation.isProved))
+    else {
+      val idx = annotatedProof.indexWhere(e => !e.annotation.isProved)
+      Incorrect(1 + idx, annotatedProof(idx).annotation)
+    }
   }
 
   def check(proof: Proof): Verdict = check(Derivation(mutable.ArrayBuffer.empty, proof))
@@ -135,7 +138,7 @@ case object Correct extends Verdict {
   override def isCorrect = true
 }
 
-case class Incorrect(index: Int) extends Verdict {
+case class Incorrect(index: Int, annotation: Annotation = null) extends Verdict {
   override def getFirstIncorrect = index
 }
 
